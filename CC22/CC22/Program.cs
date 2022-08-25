@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Xml.Schema;
 using Newtonsoft.Json;
 
 
@@ -76,23 +77,25 @@ public class Program
 
         var data = Newtonsoft.Json.JsonConvert.DeserializeObject<Rootobject>(jsonInput);
 
-        Console.WriteLine(lwSalesSumed(data));
-
-        Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(getMenus(data), Formatting.Indented));
+        Console.WriteLine(lwSalesSumed(ref data));
+        Console.WriteLine();
+        Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(getMenus(ref data), Formatting.Indented));
+        Console.WriteLine();
+        Console.WriteLine(lwProfitSumed(ref data));
 
     }
 
-    public static int lwSalesSumed(Rootobject data)
+    public static int lwSalesSumed(ref Rootobject data)
     {
         int salesSum = 0;
         foreach (var d in data.salesOfLastWeek)
         {
             int price = int.Parse(data.recipes.FirstOrDefault(x => x.name == d.name).price.Split(' ')[0]);
-        salesSum += (price* d.amount);
+            salesSum += (price * d.amount);
         }
         return salesSum;
     }
-    public static Menus getMenus(Rootobject data)
+    public static Menus getMenus(ref Rootobject data)
     {
         Menus menus = new Menus();
 
@@ -118,4 +121,53 @@ public class Program
 
         return menus;
     }
+    public static double lwProfitSumed(ref Rootobject data)
+    { 
+
+        Dictionary<string, double> wsPriceScaled = new();
+        foreach (var wsp in data.wholesalePrices)
+        {
+            if (!wsPriceScaled.ContainsKey(wsp.name))
+            {
+                wsPriceScaled.Add(wsp.name, 0);
+            }
+            double scaledPrice = wsp.price / int.Parse(wsp.amount.Split(' ')[0]); // scaled to 1 unit
+
+            if (wsp.amount.Split(' ')[1] == "kg" || wsp.amount.Split(' ')[1] == "l")
+            {
+                scaledPrice = scaledPrice / 1000; //scaled to gs/mls price
+            }
+            wsPriceScaled[wsp.name] = scaledPrice; // scaled to 1 pc/ml/g
+        }
+
+        Dictionary<string, int> usedIngs = new();
+        foreach (var s in data.salesOfLastWeek)
+        {
+            var recipe = data.recipes.FirstOrDefault(x => x.name == s.name);
+            foreach (var i in recipe.ingredients)
+            {
+                if (!usedIngs.ContainsKey(i.name))
+                {
+                    usedIngs.Add(i.name, 0);
+                }
+                usedIngs[i.name] += int.Parse(i.amount.Split(' ')[0])*s.amount;
+               
+            }
+        }
+
+        double ingPriceSum = 0;
+
+        foreach (var u in usedIngs)
+        {
+            ingPriceSum += u.Value * wsPriceScaled[u.Key];
+        }
+
+        return lwSalesSumed(ref data) - ingPriceSum;
+    }
+}
+
+public struct amountandmeasure
+{
+    public int amount;
+    public string measure;
 }

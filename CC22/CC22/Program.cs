@@ -123,14 +123,15 @@ public class Program
         sw.Write(Newtonsoft.Json.JsonConvert.SerializeObject(allergicMenus, Formatting.Indented));
         sw.Close();
         Console.WriteLine(lwProfitSumed(ref data));
+        Console.WriteLine();
         sw = new("maxes.json");
         sw.Write(Newtonsoft.Json.JsonConvert.SerializeObject(maxPossibles(ref data), Formatting.Indented));
         sw.Close();
         string jsonGodFather = "[\r\n  {\r\n    \"name\": \"Francia krémes\",\r\n    \"amount\": 300\r\n  },\r\n  {\r\n    \"name\": \"Rákóczi túrós\",\r\n    \"amount\": 200\r\n  },\r\n  {\r\n    \"name\": \"Képviselőfánk\",\r\n    \"amount\": 300\r\n  },\r\n  {\r\n    \"name\": \"Isler\",\r\n    \"amount\": 100\r\n  },\r\n  {\r\n    \"name\": \"Tiramisu\",\r\n    \"amount\": 150\r\n  }\r\n]";
-        Console.WriteLine(GodFathersBlessing(jsonGodFather, data));
+        Console.WriteLine(GodFathersBlessing(jsonGodFather, ref data));
     }
 
-    public static int GodFathersBlessing(string jsonIn, Rootobject data)
+    public static int GodFathersBlessing(string jsonIn, ref Rootobject data)
     {
         var GFOrder = Newtonsoft.Json.JsonConvert.DeserializeObject<List<GodFatherOrderItem>>(jsonIn);
         int wholesaleorderFullPrice = 0;
@@ -145,13 +146,20 @@ public class Program
                 {
                     necessaryamount = necessaryamount / 1000;
                 }
-                price += necessaryamount /
-                    int.Parse(data.wholesalePrices.FirstOrDefault(x => x.name == i.name).amount.Split(' ')[0]) * data.wholesalePrices.FirstOrDefault(x => x.name == i.name).price;
-            }
 
+                int necessaryBulk = necessaryamount /
+                    int.Parse(data.wholesalePrices.FirstOrDefault(x => x.name == i.name).amount.Split(' ')[0]);
+                if (necessaryamount % int.Parse(data.wholesalePrices.FirstOrDefault(x => x.name == i.name).amount.Split(' ')[0]) != 0)
+                {
+                    necessaryBulk++;
+                }
+
+                price +=  necessaryBulk * data.wholesalePrices.FirstOrDefault(x => x.name == i.name).price;
+            }
+            wholesaleorderFullPrice += price;
         }
 
-        return 0;
+        return wholesaleorderFullPrice;
     }
 
     public static MaxPossibleItem[] maxPossibles(ref Rootobject data)

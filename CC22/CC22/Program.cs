@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Xml.Schema;
 using Newtonsoft.Json;
 
@@ -64,8 +66,44 @@ public class Menus
     public List<MenuItem> glutenFree = new();
     public List<MenuItem> lactoseFree = new();
     public List<MenuItem> lactoseAndGlutenFree = new();
+
+    public Menus(ref Rootobject data)
+    {
+            foreach (var r in data.recipes)
+            {
+                if (r.glutenFree && r.lactoseFree)
+                {
+                    lactoseAndGlutenFree.Add(new(r.name, r.price));
+                    continue;
+                }
+                if (r.glutenFree)
+                {
+                    glutenFree.Add(new(r.name, r.price));
+                    continue;
+                }
+                if (r.lactoseFree)
+                {
+                    lactoseFree.Add(new(r.name, r.price));
+                    continue;
+                }
+
+            }
+
+
+    }
 }
 
+public class MaxPossibleItem
+{
+    public string name;
+    public int amount;
+
+    public MaxPossibleItem(string name, int amount)
+    {
+        this.name = name;
+        this.amount = amount;
+    }
+}
 
 public class Program
 {
@@ -79,9 +117,50 @@ public class Program
 
         Console.WriteLine(lwSalesSumed(ref data));
         Console.WriteLine();
-        Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(getMenus(ref data), Formatting.Indented));
+        Menus allergicMenus = new(ref data);
+        Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(allergicMenus, Formatting.Indented));
         Console.WriteLine();
         Console.WriteLine(lwProfitSumed(ref data));
+        Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(maxPossibles(ref data), Formatting.Indented));
+    }
+
+    public static MaxPossibleItem[] maxPossibles (ref Rootobject data)
+    {
+        Dictionary<string, int> convInventory = new(); //store in ml, g, and pc
+        foreach (var i in data.inventory)
+        {
+            if (!convInventory.ContainsKey(i.name))
+            {
+                convInventory.Add(i.name, 0);
+            }
+
+            if (i.amount.Split(' ')[1] == "kg" || i.amount.Split(' ')[1] == "l")
+            {
+                convInventory[i.name] = int.Parse(i.amount.Split(' ')[0])*1000;
+            }
+            else
+            {
+                convInventory[i.name] = int.Parse(i.amount.Split(' ')[0]);
+            }
+
+        }
+        List<MaxPossibleItem> maxPossibles = new();
+        foreach (var r in data.recipes)
+        {
+            int minMax = convInventory[r.ingredients[0].name] / int.Parse(r.ingredients[0].amount.Split(' ')[0]);
+            foreach (var i in r.ingredients)
+            {
+                if (convInventory[i.name] / int.Parse(i.amount.Split(' ')[0]) < minMax)
+                {
+                    minMax = convInventory[i.name] / int.Parse(i.amount.Split(' ')[0]);
+                }
+            }
+
+            maxPossibles.Add(new(r.name, minMax));
+
+        }
+
+        return maxPossibles.OrderBy(x => x.name).ToArray();
 
     }
 
@@ -95,32 +174,7 @@ public class Program
         }
         return salesSum;
     }
-    public static Menus getMenus(ref Rootobject data)
-    {
-        Menus menus = new Menus();
-
-        foreach (var r in data.recipes)
-        {
-            if (r.glutenFree && r.lactoseFree)
-            {
-                menus.lactoseAndGlutenFree.Add(new(r.name, r.price));
-                continue;
-            }
-            if (r.glutenFree)
-            {
-                menus.glutenFree.Add(new(r.name, r.price));
-                continue;
-            }
-            if (r.lactoseFree)
-            {
-                menus.lactoseFree.Add(new(r.name, r.price));
-                continue;
-            }
-
-        }
-
-        return menus;
-    }
+   
     public static double lwProfitSumed(ref Rootobject data)
     { 
 
@@ -164,10 +218,4 @@ public class Program
 
         return lwSalesSumed(ref data) - ingPriceSum;
     }
-}
-
-public struct amountandmeasure
-{
-    public int amount;
-    public string measure;
 }

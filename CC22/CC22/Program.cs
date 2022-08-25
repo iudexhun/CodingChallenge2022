@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography.X509Certificates;
 using System.Xml.Schema;
 using Newtonsoft.Json;
 
@@ -69,25 +70,25 @@ public class Menus
 
     public Menus(ref Rootobject data)
     {
-            foreach (var r in data.recipes)
+        foreach (var r in data.recipes)
+        {
+            if (r.glutenFree && r.lactoseFree)
             {
-                if (r.glutenFree && r.lactoseFree)
-                {
-                    lactoseAndGlutenFree.Add(new(r.name, r.price));
-                    continue;
-                }
-                if (r.glutenFree)
-                {
-                    glutenFree.Add(new(r.name, r.price));
-                    continue;
-                }
-                if (r.lactoseFree)
-                {
-                    lactoseFree.Add(new(r.name, r.price));
-                    continue;
-                }
-
+                lactoseAndGlutenFree.Add(new(r.name, r.price));
+                continue;
             }
+            if (r.glutenFree)
+            {
+                glutenFree.Add(new(r.name, r.price));
+                continue;
+            }
+            if (r.lactoseFree)
+            {
+                lactoseFree.Add(new(r.name, r.price));
+                continue;
+            }
+
+        }
 
 
     }
@@ -118,13 +119,42 @@ public class Program
         Console.WriteLine(lwSalesSumed(ref data));
         Console.WriteLine();
         Menus allergicMenus = new(ref data);
-        Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(allergicMenus, Formatting.Indented));
-        Console.WriteLine();
+        StreamWriter sw = new("menus.json");
+        sw.Write(Newtonsoft.Json.JsonConvert.SerializeObject(allergicMenus, Formatting.Indented));
+        sw.Close();
         Console.WriteLine(lwProfitSumed(ref data));
-        Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(maxPossibles(ref data), Formatting.Indented));
+        sw = new("maxes.json");
+        sw.Write(Newtonsoft.Json.JsonConvert.SerializeObject(maxPossibles(ref data), Formatting.Indented));
+        sw.Close();
+        string jsonGodFather = "[\r\n  {\r\n    \"name\": \"Francia krémes\",\r\n    \"amount\": 300\r\n  },\r\n  {\r\n    \"name\": \"Rákóczi túrós\",\r\n    \"amount\": 200\r\n  },\r\n  {\r\n    \"name\": \"Képviselőfánk\",\r\n    \"amount\": 300\r\n  },\r\n  {\r\n    \"name\": \"Isler\",\r\n    \"amount\": 100\r\n  },\r\n  {\r\n    \"name\": \"Tiramisu\",\r\n    \"amount\": 150\r\n  }\r\n]";
+        Console.WriteLine(GodFathersBlessing(jsonGodFather, data));
     }
 
-    public static MaxPossibleItem[] maxPossibles (ref Rootobject data)
+    public static int GodFathersBlessing(string jsonIn, Rootobject data)
+    {
+        var GFOrder = Newtonsoft.Json.JsonConvert.DeserializeObject<List<GodFatherOrderItem>>(jsonIn);
+        int wholesaleorderFullPrice = 0;
+        foreach(var o in GFOrder)
+        {
+            int price = 0;
+            foreach (var i in data.recipes.FirstOrDefault(x => x.name == o.name).ingredients)
+            {
+
+                int necessaryamount = int.Parse(i.amount.Split(' ')[0])*o.amount;
+                if (i.amount.Split(' ')[1] == "g" || i.amount.Split(' ')[1] == "ml")
+                {
+                    necessaryamount = necessaryamount / 1000;
+                }
+                price += necessaryamount /
+                    int.Parse(data.wholesalePrices.FirstOrDefault(x => x.name == i.name).amount.Split(' ')[0]) * data.wholesalePrices.FirstOrDefault(x => x.name == i.name).price;
+            }
+
+        }
+
+        return 0;
+    }
+
+    public static MaxPossibleItem[] maxPossibles(ref Rootobject data)
     {
         Dictionary<string, int> convInventory = new(); //store in ml, g, and pc
         foreach (var i in data.inventory)
@@ -136,7 +166,7 @@ public class Program
 
             if (i.amount.Split(' ')[1] == "kg" || i.amount.Split(' ')[1] == "l")
             {
-                convInventory[i.name] = int.Parse(i.amount.Split(' ')[0])*1000;
+                convInventory[i.name] = int.Parse(i.amount.Split(' ')[0]) * 1000;
             }
             else
             {
@@ -155,8 +185,11 @@ public class Program
                     minMax = convInventory[i.name] / int.Parse(i.amount.Split(' ')[0]);
                 }
             }
+            if (minMax > 0)
+            {
+                maxPossibles.Add(new(r.name, minMax));
+            }
 
-            maxPossibles.Add(new(r.name, minMax));
 
         }
 
@@ -174,9 +207,9 @@ public class Program
         }
         return salesSum;
     }
-   
+
     public static double lwProfitSumed(ref Rootobject data)
-    { 
+    {
 
         Dictionary<string, double> wsPriceScaled = new();
         foreach (var wsp in data.wholesalePrices)
@@ -204,8 +237,8 @@ public class Program
                 {
                     usedIngs.Add(i.name, 0);
                 }
-                usedIngs[i.name] += int.Parse(i.amount.Split(' ')[0])*s.amount;
-               
+                usedIngs[i.name] += int.Parse(i.amount.Split(' ')[0]) * s.amount;
+
             }
         }
 
@@ -218,4 +251,10 @@ public class Program
 
         return lwSalesSumed(ref data) - ingPriceSum;
     }
+}
+
+public class GodFatherOrderItem
+{
+    public string name { get; set; }
+    public int amount { get; set; }
 }

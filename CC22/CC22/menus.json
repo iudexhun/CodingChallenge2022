@@ -1,0 +1,44 @@
+{
+  "glutenFree": [
+    {
+      "name": "Csokis krémes",
+      "price": "500 Ft"
+    },
+    {
+      "name": "Túrós pite",
+      "price": "450 Ft"
+    }
+  ],
+  "lactoseFree": [
+    {
+      "name": "Gyümölcsös krémes",
+      "price": "450 Ft"
+    },
+    {
+      "name": "Rigó Jancsi",
+      "price": "450 Ft"
+    },
+    {
+      "name": "Rákóczi túrós",
+      "price": "500 Ft"
+    },
+    {
+      "name": "Mákos habos",
+      "price": "550 Ft"
+    },
+    {
+      "name": "Flódni",
+      "price": "580 Ft"
+    },
+    {
+      "name": "Linzerkarika",
+      "price": "380 Ft"
+    }
+  ],
+  "lactoseAndGlutenFree": [
+    {
+      "name": "Meggyes pite",
+      "price": "450 Ft"
+    }
+  ]
+}

@@ -7,7 +7,8 @@ using System.Security.Cryptography.X509Certificates;
 using System.Xml.Schema;
 using Newtonsoft.Json;
 
-
+//I made a class for all the objects, so that it is always self-explainatory what is what.
+//please note that this solution was done in a hurry, but I tried to keep it simple.
 public class Rootobject
 {
     public Recipe[] recipes { get; set; }
@@ -131,6 +132,7 @@ public class Program
         Console.WriteLine(GodFathersBlessing(jsonGodFather, ref data));
     }
 
+  //returns how much money it takes to buy all the necessary things for the daughter's wedding
     public static int GodFathersBlessing(string jsonIn, ref Rootobject data)
     {
         var GFOrder = Newtonsoft.Json.JsonConvert.DeserializeObject<List<GodFatherOrderItem>>(jsonIn);
@@ -161,7 +163,8 @@ public class Program
 
         return wholesaleorderFullPrice;
     }
-
+//returns an array of the items that can be made with the current inventory, and also how much of those items could be made. The items are ordered by name, asc.
+  
     public static MaxPossibleItem[] maxPossibles(ref Rootobject data)
     {
         Dictionary<string, int> convInventory = new(); //store in ml, g, and pc
@@ -204,7 +207,7 @@ public class Program
         return maxPossibles.OrderBy(x => x.name).ToArray();
 
     }
-
+// returns last week's sales, sumed.
     public static int lwSalesSumed(ref Rootobject data)
     {
         int salesSum = 0;
@@ -216,6 +219,7 @@ public class Program
         return salesSum;
     }
 
+  // returns last week's profit, sumed.
     public static double lwProfitSumed(ref Rootobject data)
     {
 
